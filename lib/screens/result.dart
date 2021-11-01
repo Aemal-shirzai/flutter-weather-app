@@ -7,7 +7,7 @@ import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loading_indicator/loading_indicator.dart';
-
+import 'package:flash/flash.dart';
 class ResultScreen extends StatefulWidget {
   @override
   _ResultScreenState createState() => _ResultScreenState();
@@ -31,28 +31,48 @@ class _ResultScreenState extends State<ResultScreen> {
     "tempMax": '',
   };
   bool isDataAvailible = false;
+  bool isError = false;
+  FlashController<dynamic> currentSnackBar;
 
 
   Future<bool> _checkLocationAccess() async {
+
     bool res = await _isPrefsDataAvailible();
     if(!res){
       _serviceEnabled = await location.serviceEnabled();
       if (!_serviceEnabled) {
         _serviceEnabled = await location.requestService();
         if (!_serviceEnabled) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('You need to turn on the location first.')),
+          setState(() {
+            isError = true;
+          });
+          _showBasicsFlash(
+            content: "The Application Needs to User Location For First Time.", 
+            icon: Icon(
+              Icons.gps_not_fixed_sharp,
+              size: 40,
+              color: Colors.white,
+            ),
           );
           return false;
         }
       }
     }
+
     _permissionGranted = await location.hasPermission();
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await location.requestPermission();
       if (_permissionGranted != PermissionStatus.granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You need to allow this app to access your location first.')),
+        setState(() {
+          isError = true;
+        });
+        _showBasicsFlash(
+          content: "The Application Needs Permission for Location.", 
+          icon: Icon(
+            Icons.perm_device_information,
+            size: 40,
+            color: Colors.white,
+          ),
         );
         return false;
       }
@@ -61,13 +81,19 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _determineLocation() async{
+
     setState(() {
       isDataAvailible = false;
+      isError = false;
+      if (currentSnackBar != null) {
+        currentSnackBar.dismiss();
+      }
     });
     bool _locationAccess = await _checkLocationAccess();
     if (_locationAccess == false) {
       return null;
     }
+
     bool res = await _isPrefsDataAvailible();
     if(!res){
       LocationData _locationData = await location.getLocation();
@@ -90,6 +116,7 @@ class _ResultScreenState extends State<ResultScreen> {
       weatherData["tempMin"] = jsonBody['main']['temp_min'].round().toString();
       weatherData["tempMax"] = jsonBody['main']['temp_max'].round().toString();
       isDataAvailible = true;
+      isError = false;
     });
   
   }
@@ -120,6 +147,42 @@ class _ResultScreenState extends State<ResultScreen> {
     await prefsObj.clear();
   }
   
+  void _showBasicsFlash({
+    Duration duration,
+    flashStyle = FlashBehavior.fixed,
+    String content,
+    Icon icon
+  }) {
+    showFlash(
+      context: context,
+      duration: duration,
+      builder: (context, controller) {
+        currentSnackBar = controller;
+        return Flash(
+          controller: controller,
+          margin: EdgeInsets.only(top: 25, left: 12, right: 12),
+          backgroundColor: Colors.lightBlue.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(20),
+          enableVerticalDrag: false,
+          behavior: flashStyle,
+          position: FlashPosition.top,
+          boxShadows: kElevationToShadow[4],
+          horizontalDismissDirection: HorizontalDismissDirection.horizontal,
+          child: FlashBar(
+            padding: EdgeInsets.symmetric(horizontal: 35, vertical: 20),
+            icon: icon,
+            content: Container(
+              child: Text(
+                content,
+                textAlign: TextAlign.center, 
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -143,7 +206,7 @@ class _ResultScreenState extends State<ResultScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Visibility(
-                visible: isDataAvailible,
+                visible: isDataAvailible && !isError,
                 child: Expanded(
                   child: Column(
                     children: [    
@@ -371,7 +434,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 ),
               ),
               Visibility(
-                visible: !isDataAvailible,
+                visible: !isDataAvailible && !isError,
                 child: Container(
                   width: 100,
                   child: LoadingIndicator(
@@ -383,6 +446,33 @@ class _ResultScreenState extends State<ResultScreen> {
                       Colors.indigo,
                       Colors.purple,],
                     indicatorType: Indicator.ballTrianglePathColoredFilled,
+                  ),
+                )
+              ),
+              Visibility(
+                visible: !isDataAvailible && isError,
+                child: Container(
+                  child: GestureDetector(
+                    onTap: () {
+                      _determineLocation();
+                    },
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.refresh,
+                          size: 80,
+                          color: Colors.white,
+                        ),
+                        Text(
+                          "Reload",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               )
