@@ -85,9 +85,9 @@ class _ResultScreenState extends State<ResultScreen> {
     setState(() {
       isDataAvailible = false;
       isError = false;
-      if (currentSnackBar != null) {
+      try{
         currentSnackBar.dismiss();
-      }
+      } catch(e) {}
     });
     bool _locationAccess = await _checkLocationAccess();
     if (_locationAccess == false) {
