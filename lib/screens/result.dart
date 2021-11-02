@@ -7,7 +7,10 @@ import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loading_indicator/loading_indicator.dart';
-import 'package:flash/flash.dart';
+import '../components/flashMessage.dart' as flash_message;
+import '../components/constants.dart';
+import '../components/sharedDate.dart';
+
 class ResultScreen extends StatefulWidget {
   @override
   _ResultScreenState createState() => _ResultScreenState();
@@ -15,7 +18,7 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   // location and permission
-  final apiKey = "f7c1edb5ebe2f20e207df9df6eab5fa2";
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   Location location = Location();
   bool _serviceEnabled;
   PermissionStatus _permissionGranted;
@@ -32,12 +35,11 @@ class _ResultScreenState extends State<ResultScreen> {
   };
   bool isDataAvailible = false;
   bool isError = false;
-  FlashController<dynamic> currentSnackBar;
 
 
   Future<bool> _checkLocationAccess() async {
 
-    bool res = await _isPrefsDataAvailible();
+    bool res = await isPrefsDataAvailible(_prefs);
     if(!res){
       _serviceEnabled = await location.serviceEnabled();
       if (!_serviceEnabled) {
@@ -46,7 +48,8 @@ class _ResultScreenState extends State<ResultScreen> {
           setState(() {
             isError = true;
           });
-          _showBasicsFlash(
+          flash_message.showBasicsFlash(
+            context: context,
             content: "The Application Needs to User Location For First Time.", 
             icon: Icon(
               Icons.gps_not_fixed_sharp,
@@ -66,7 +69,8 @@ class _ResultScreenState extends State<ResultScreen> {
         setState(() {
           isError = true;
         });
-        _showBasicsFlash(
+        flash_message.showBasicsFlash(
+          context: context,
           content: "The Application Needs Permission for Location.", 
           icon: Icon(
             Icons.perm_device_information,
@@ -86,7 +90,7 @@ class _ResultScreenState extends State<ResultScreen> {
       isDataAvailible = false;
       isError = false;
       try{
-        currentSnackBar.dismiss();
+        flash_message.currentSnackBar.dismiss();
       } catch(e) {}
     });
     bool _locationAccess = await _checkLocationAccess();
@@ -94,18 +98,18 @@ class _ResultScreenState extends State<ResultScreen> {
       return null;
     }
 
-    bool res = await _isPrefsDataAvailible();
+    bool res = await isPrefsDataAvailible(_prefs);
     if(!res){
       LocationData _locationData = await location.getLocation();
       lat = _locationData.latitude;
       lon = _locationData.longitude;
     }else {
-      Map _locationData = await _getPrefsData();
+      Map _locationData = await getPrefsData(_prefs);
       lat = _locationData['lat'];
       lon = _locationData['lon'];
     }
-    await _setPrefsData();
-    http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric"));
+    await setPrefsData(_prefs, {'lat': lat, 'lon': lon});
+    http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$KApiKey&units=metric"));
     Map jsonBody = convert.jsonDecode(response.body);
     setState(() {
       weatherData["cityName"] = jsonBody['name'];
@@ -121,68 +125,6 @@ class _ResultScreenState extends State<ResultScreen> {
   
   }
   
-  // Shared Prefrences
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  Future<void> _setPrefsData() async {
-    final SharedPreferences prefsObj = await _prefs;
-    prefsObj.setDouble('lat', lat);
-    prefsObj.setDouble('lon', lon);
-  }
-  Future<Map> _getPrefsData() async {
-    final SharedPreferences prefsObj = await _prefs;
-    return {
-      "lat": prefsObj.getDouble('lat'),
-      "lon": prefsObj.getDouble('lon')
-    };
-  }
-  Future<bool> _isPrefsDataAvailible() async {
-    final SharedPreferences prefsObj = await _prefs;
-    if (prefsObj.getDouble('lat') == null || prefsObj.getDouble('lon') == null){
-      return false;
-    }
-    return true;
-  }
-  Future<void> _clearPref() async {
-    final SharedPreferences prefsObj = await _prefs;
-    await prefsObj.clear();
-  }
-  
-  void _showBasicsFlash({
-    Duration duration,
-    flashStyle = FlashBehavior.fixed,
-    String content,
-    Icon icon
-  }) {
-    showFlash(
-      context: context,
-      duration: duration,
-      builder: (context, controller) {
-        currentSnackBar = controller;
-        return Flash(
-          controller: controller,
-          margin: EdgeInsets.only(top: 25, left: 12, right: 12),
-          backgroundColor: Colors.lightBlue.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(20),
-          enableVerticalDrag: false,
-          behavior: flashStyle,
-          position: FlashPosition.top,
-          boxShadows: kElevationToShadow[4],
-          horizontalDismissDirection: HorizontalDismissDirection.horizontal,
-          child: FlashBar(
-            padding: EdgeInsets.symmetric(horizontal: 35, vertical: 20),
-            icon: icon,
-            content: Container(
-              child: Text(
-                content,
-                textAlign: TextAlign.center, 
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   @override
   void initState() {
@@ -304,7 +246,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                   color: Colors.white,
                                   iconSize: 30,
                                   onPressed: () async {
-                                    await _clearPref(); 
+                                    await clearPref(_prefs); 
                                   },
                                 ),
                               ),
