@@ -1,15 +1,13 @@
 import 'dart:ui';
-import 'dart:convert' as convert;
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hawa/screens/search.dart';
 import 'package:location/location.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loading_indicator/loading_indicator.dart';
-import '../components/flashMessage.dart' as flash_message;
-import '../components/constants.dart';
-import '../components/sharedDate.dart';
+import 'package:hawa/components/customStore.dart';
+import 'package:hawa/components/flashMessage.dart' as flash_message;
+import 'package:hawa/components/locationManager.dart';
 
 class ResultScreen extends StatefulWidget {
   @override
@@ -17,13 +15,8 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  // location and permission
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   Location location = Location();
-  bool _serviceEnabled;
-  PermissionStatus _permissionGranted;
-  double lat;
-  double lon;
   Map weatherData = {
     "countryName": "",
     "cityName" : '',
@@ -35,57 +28,7 @@ class _ResultScreenState extends State<ResultScreen> {
   };
   bool isDataAvailible = false;
   bool isError = false;
-
-
-  Future<bool> _checkLocationAccess() async {
-
-    bool res = await isPrefsDataAvailible(_prefs);
-    if(!res){
-      _serviceEnabled = await location.serviceEnabled();
-      if (!_serviceEnabled) {
-        _serviceEnabled = await location.requestService();
-        if (!_serviceEnabled) {
-          setState(() {
-            isError = true;
-          });
-          flash_message.showBasicsFlash(
-            context: context,
-            content: "The Application Needs to User Location For First Time.", 
-            icon: Icon(
-              Icons.gps_not_fixed_sharp,
-              size: 40,
-              color: Colors.white,
-            ),
-          );
-          return false;
-        }
-      }
-    }
-
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        setState(() {
-          isError = true;
-        });
-        flash_message.showBasicsFlash(
-          context: context,
-          content: "The Application Needs Permission for Location.", 
-          icon: Icon(
-            Icons.perm_device_information,
-            size: 40,
-            color: Colors.white,
-          ),
-        );
-        return false;
-      }
-    }
-    return true;
-  }
-
-  Future<void> _determineLocation() async{
-
+  Future<void> _getData() async{
     setState(() {
       isDataAvailible = false;
       isError = false;
@@ -93,42 +36,33 @@ class _ResultScreenState extends State<ResultScreen> {
         flash_message.currentSnackBar.dismiss();
       } catch(e) {}
     });
-    bool _locationAccess = await _checkLocationAccess();
-    if (_locationAccess == false) {
+    Map _locationData = await determineLocation(context, _prefs, location);
+    if (!_locationData['status']) {
+      setState(() {
+        this.isError = true;
+      });
       return null;
     }
 
-    bool res = await isPrefsDataAvailible(_prefs);
-    if(!res){
-      LocationData _locationData = await location.getLocation();
-      lat = _locationData.latitude;
-      lon = _locationData.longitude;
-    }else {
-      Map _locationData = await getPrefsData(_prefs);
-      lat = _locationData['lat'];
-      lon = _locationData['lon'];
-    }
-    await setPrefsData(_prefs, {'lat': lat, 'lon': lon});
-    http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$KApiKey&units=metric"));
-    Map jsonBody = convert.jsonDecode(response.body);
     setState(() {
-      weatherData["cityName"] = jsonBody['name'];
-      weatherData["countryName"] = jsonBody['sys']["country"];
-      weatherData["cityTemprature"] = jsonBody['main']['temp'].round().toString();  
-      weatherData["description"] = jsonBody["weather"][0]["description"];
-      weatherData["humidity"] = jsonBody["main"]["humidity"].toString();
-      weatherData["tempMin"] = jsonBody['main']['temp_min'].round().toString();
-      weatherData["tempMax"] = jsonBody['main']['temp_max'].round().toString();
+      weatherData["cityName"] = _locationData['name'];
+      weatherData["countryName"] = _locationData['sys']["country"];
+      weatherData["cityTemprature"] = _locationData['main']['temp'].round().toString();  
+      weatherData["description"] = _locationData["weather"][0]["description"];
+      weatherData["humidity"] = _locationData["main"]["humidity"].toString();
+      weatherData["tempMin"] = _locationData['main']['temp_min'].round().toString();
+      weatherData["tempMax"] = _locationData['main']['temp_max'].round().toString();
       isDataAvailible = true;
       isError = false;
     });
-  
-  }
-  
+
+  } 
+
+
 
   @override
   void initState() {
-    _determineLocation();
+    _getData();
     super.initState();
   }
 
@@ -139,7 +73,7 @@ class _ResultScreenState extends State<ResultScreen> {
         constraints: BoxConstraints.expand(),
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/images/04.jpg"),
+            image: AssetImage("assets/images/03.jpg"),
             fit: BoxFit.cover,
           ),
         ),
@@ -235,7 +169,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                   color: Colors.white,
                                   iconSize: 30,
                                   onPressed: () async {
-                                    await _determineLocation();
+                                    await _getData();
                                   },
                                 ),
                               ),
@@ -396,7 +330,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 child: Container(
                   child: GestureDetector(
                     onTap: () {
-                      _determineLocation();
+                      _getData();
                     },
                     child: Column(
                       children: [

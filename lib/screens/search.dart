@@ -37,7 +37,7 @@ class _SearchScreenState extends State<SearchScreen> {
         constraints: BoxConstraints.expand(),
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/images/04.jpg"),
+            image: AssetImage("assets/images/03.jpg"),
             fit: BoxFit.cover,
           ),
         ),
