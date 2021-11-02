@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hawa/screens/search.dart';
 import 'package:location/location.dart';
@@ -8,6 +10,8 @@ import 'package:loading_indicator/loading_indicator.dart';
 import 'package:hawa/components/customStore.dart';
 import 'package:hawa/components/flashMessage.dart' as flash_message;
 import 'package:hawa/components/locationManager.dart';
+import 'package:connectivity/connectivity.dart';
+
 
 class ResultScreen extends StatefulWidget {
   @override
@@ -15,6 +19,11 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
+  String _connectionStatus = 'Unknown';
+  String _prevConnectionStatus = 'Unknown';
+  StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  final Connectivity _connectivity = Connectivity();
+
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   Location location = Location();
   Map weatherData = {
@@ -28,7 +37,68 @@ class _ResultScreenState extends State<ResultScreen> {
   };
   bool isDataAvailible = false;
   bool isError = false;
+
+  Future<bool> _updateConnectionStatus(ConnectivityResult result) async {
+    var connectivityResult = result;
+    setState(() {
+      this._prevConnectionStatus =  this._connectionStatus;
+      this._connectionStatus = connectivityResult.toString();
+      try{
+        flash_message.currentSnackBar.dismiss();
+      } catch(e) {}
+    });
+    if (connectivityResult == ConnectivityResult.mobile || connectivityResult == ConnectivityResult.wifi) {
+      if (this._prevConnectionStatus == 'ConnectivityResult.none') {
+        _getData ();
+        flash_message.showBasicsFlash(
+          context: context,
+          duration: Duration(seconds: 2),
+          content: "Connection Restored Seccessfully.", 
+          icon: Icon(
+            Icons.check,
+            size: 40,
+            color: Colors.white,
+          ),
+        );
+      }
+    } else {
+      setState(() {
+        this.isError = true;
+        this.isDataAvailible = false;
+      });
+      flash_message.showBasicsFlash(
+        context: context,
+        content: "OOPS!. You Are Not Connected to Internet.", 
+        icon: Icon(
+          Icons.signal_cellular_connected_no_internet_4_bar,
+          size: 40,
+          color: Colors.white,
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> initConnectivity() async {
+    ConnectivityResult result = ConnectivityResult.none;
+    try {
+      result = await _connectivity.checkConnectivity();
+    } on PlatformException catch (e) {
+      print(e.toString());
+      return Future.value(false);
+    }
+
+    if (!mounted) {
+      return Future.value(false);
+    }
+
+    return _updateConnectionStatus(result);
+  }
+
+
   Future<void> _getData() async{
+
     setState(() {
       isDataAvailible = false;
       isError = false;
@@ -36,6 +106,15 @@ class _ResultScreenState extends State<ResultScreen> {
         flash_message.currentSnackBar.dismiss();
       } catch(e) {}
     });
+    
+    if (this._connectionStatus == 'Unknown' || this._connectionStatus == 'ConnectivityResult.none') {
+      setState(() {
+        this.isError = true;
+        initConnectivity();
+      });
+      return null;
+    }
+    
     Map _locationData = await determineLocation(context, _prefs, location);
     if (!_locationData['status']) {
       setState(() {
@@ -58,12 +137,22 @@ class _ResultScreenState extends State<ResultScreen> {
 
   } 
 
-
+  Future<void> setupConfigurations() async {
+      await initConnectivity();
+      _connectivitySubscription =
+          _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+      _getData();
+  }
 
   @override
   void initState() {
-    _getData();
+   setupConfigurations();
     super.initState();
+  }
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
   }
 
   @override
