@@ -11,6 +11,7 @@ import 'package:hawa/components/customStore.dart';
 import 'package:hawa/components/flashMessage.dart' as flash_message;
 import 'package:hawa/components/locationManager.dart';
 import 'package:connectivity/connectivity.dart';
+import 'package:hawa/models/weatherModel.dart';
 
 
 class ResultScreen extends StatefulWidget {
@@ -19,11 +20,11 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
+  WeatherBase weatherBase = WeatherBase();
   String _connectionStatus = 'Unknown';
   String _prevConnectionStatus = 'Unknown';
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
   final Connectivity _connectivity = Connectivity();
-
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   Location location = Location();
   Map weatherData = {
@@ -124,13 +125,16 @@ class _ResultScreenState extends State<ResultScreen> {
     }
 
     setState(() {
-      weatherData["cityName"] = _locationData['name'];
-      weatherData["countryName"] = _locationData['sys']["country"];
-      weatherData["cityTemprature"] = _locationData['main']['temp'].round().toString();  
-      weatherData["description"] = _locationData["weather"][0]["description"];
-      weatherData["humidity"] = _locationData["main"]["humidity"].toString();
-      weatherData["tempMin"] = _locationData['main']['temp_min'].round().toString();
-      weatherData["tempMax"] = _locationData['main']['temp_max'].round().toString();
+      weatherBase.setValues(
+        cityName: _locationData['name'],
+        countryName: _locationData['sys']["country"],
+        cityTemprature: _locationData['main']['temp'].round(),
+        description: _locationData["weather"][0]["description"],
+        humidity: _locationData["main"]["humidity"],
+        tempMin: _locationData['main']['temp_min'].round(),
+        tempMax: _locationData['main']['temp_max'].round()
+      );
+      weatherData =  weatherBase.getValues();
       isDataAvailible = true;
       isError = false;
     });
@@ -201,7 +205,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                   Container(
                                     child: RichText(
                                         text: TextSpan(
-                                          text: weatherData["cityTemprature"],
+                                          text: weatherData["cityTemprature"].toString(),
                                           style: Theme.of(context).textTheme.headline1,
                                           children: const <TextSpan>[
                                             TextSpan(
@@ -317,7 +321,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          weatherData["humidity"] + "%",
+                                          weatherData["humidity"].toString() + "%",
                                           style: Theme.of(context).textTheme.headline5,
                                         ),
                                         SizedBox(
@@ -345,7 +349,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          weatherData["tempMin"] + " \u00B0",
+                                          weatherData["tempMin"].toString() + " \u00B0",
                                           style: Theme.of(context).textTheme.headline5,
                                         ),
                                         SizedBox(
@@ -374,7 +378,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          weatherData["tempMax"] + " \u00B0",
+                                          weatherData["tempMax"].toString() + " \u00B0",
                                           style: Theme.of(context).textTheme.headline5,
                                         ),
                                         SizedBox(

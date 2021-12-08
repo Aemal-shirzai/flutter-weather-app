@@ -8,8 +8,8 @@ import 'dart:convert' as convert;
 
 bool _serviceEnabled;
 PermissionStatus _permissionGranted;
-Future<bool> checkLocationAccess(context, prefs, location) async {
 
+Future<bool> checkLocationAccess(context, prefs, location) async {
   bool res = await isPrefsDataAvailible(prefs);
   if(!res){
     _serviceEnabled = await location.serviceEnabled();
@@ -50,15 +50,17 @@ Future<bool> checkLocationAccess(context, prefs, location) async {
 }
 
 
-  Future<dynamic> determineLocation(context, prefs, location) async{
+Future<dynamic> determineLocation(context, prefs, location, {searchBy: searchType.byGeo}) async{
+  String searchQuery = '';
+  Map jsonBody = {};
+  
+  if (searchBy == searchType.byGeo) {
     double lat;
     double lon;
-
     bool _locationAccess = await checkLocationAccess(context, prefs, location);
     if (_locationAccess == false) {
       return {'status': false};
     }
-
     bool res = await isPrefsDataAvailible(prefs);
     if(!res){
       LocationData _locationData = await location.getLocation();
@@ -70,24 +72,28 @@ Future<bool> checkLocationAccess(context, prefs, location) async {
       lon = _locationData['lon'];
     }
     await setPrefsData(prefs, {'lat': lat, 'lon': lon});
-    Map jsonBody = {};
-    try {
-      http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$KApiKey&units=metric"));
-      jsonBody = convert.jsonDecode(response.body);
-    } catch(e) {
-      flash_message.showBasicsFlash(
-        context: context,
-        content: "OOPS!. Could Not Load Data Please check You Have Proper Internet Connection.", 
-        icon: Icon(
-          Icons.signal_cellular_connected_no_internet_4_bar,
-          size: 40,
-          color: Colors.white,
-        ),
-      );
-      return {'status': false};
-    }
-    jsonBody['status'] = true;
-    return jsonBody;
-  
+    searchQuery = 'lat=$lat&lon=$lon';
+  } else {
+    searchQuery = 'q=London';
   }
+  
+  try {
+    http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?$searchQuery&appid=$KApiKey&units=metric")).timeout(Duration(seconds: 15));
+    jsonBody = convert.jsonDecode(response.body);
+  } catch(e) {
+    flash_message.showBasicsFlash(
+      context: context,
+      content: "OOPS!. Could Not Load Data Please check You Have Proper Internet Connection.", 
+      icon: Icon(
+        Icons.signal_cellular_connected_no_internet_4_bar,
+        size: 40,
+        color: Colors.white,
+      ),
+    );
+    return {'status': false};
+  }
+  jsonBody['status'] = true;
+  return jsonBody;
+  
+}
   
