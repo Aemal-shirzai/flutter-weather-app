@@ -1,18 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hawa/screens/search.dart';
-import 'package:location/location.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:hawa/components/customStore.dart';
-import 'package:hawa/components/flashMessage.dart' as flash_message;
+import 'package:hawa/components/flashMessage.dart';
 import 'package:hawa/components/locationManager.dart';
-import 'package:connectivity/connectivity.dart';
 import 'package:hawa/models/weatherModel.dart';
-
+import 'package:hawa/components/connectivityManager.dart';
 
 class ResultScreen extends StatefulWidget {
   @override
@@ -21,12 +17,12 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   WeatherBase weatherBase = WeatherBase();
-  String _connectionStatus = 'Unknown';
-  String _prevConnectionStatus = 'Unknown';
-  StreamSubscription<ConnectivityResult> _connectivitySubscription;
-  final Connectivity _connectivity = Connectivity();
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  Location location = Location();
+  ConnectivityManager connectivityManager;
+  PreferencesManager preferencesManager = PreferencesManager();
+  FlashMessageManager flashMessageManager = FlashMessageManager();
+  LocationManager locationManager;
+  bool isDataAvailible = false;
+  bool isError = false;
   Map weatherData = {
     "countryName": "",
     "cityName" : '',
@@ -36,94 +32,17 @@ class _ResultScreenState extends State<ResultScreen> {
     "tempMin": '',
     "tempMax": '',
   };
-  bool isDataAvailible = false;
-  bool isError = false;
-
-  Future<bool> _updateConnectionStatus(ConnectivityResult result) async {
-    var connectivityResult = result;
-    setState(() {
-      this._prevConnectionStatus =  this._connectionStatus;
-      this._connectionStatus = connectivityResult.toString();
-      try{
-        flash_message.currentSnackBar.dismiss();
-      } catch(e) {}
-    });
-    if (connectivityResult == ConnectivityResult.mobile || connectivityResult == ConnectivityResult.wifi) {
-      if (this._prevConnectionStatus == 'ConnectivityResult.none') {
-        _getData ();
-        flash_message.showBasicsFlash(
-          context: context,
-          duration: Duration(seconds: 2),
-          content: "Connection Restored Seccessfully.", 
-          icon: Icon(
-            Icons.check,
-            size: 40,
-            color: Colors.white,
-          ),
-        );
-      }
-    } else {
-      setState(() {
-        this.isError = true;
-        this.isDataAvailible = false;
-      });
-      flash_message.showBasicsFlash(
-        context: context,
-        content: "OOPS!. You Are Not Connected to Internet.", 
-        icon: Icon(
-          Icons.signal_cellular_connected_no_internet_4_bar,
-          size: 40,
-          color: Colors.white,
-        ),
-      );
-      return false;
-    }
-    return true;
-  }
-
-  Future<bool> initConnectivity() async {
-    ConnectivityResult result = ConnectivityResult.none;
-    try {
-      result = await _connectivity.checkConnectivity();
-    } on PlatformException catch (e) {
-      print(e.toString());
-      return Future.value(false);
-    }
-
-    if (!mounted) {
-      return Future.value(false);
-    }
-
-    return _updateConnectionStatus(result);
-  }
 
 
-  Future<void> _getData() async{
-
-    setState(() {
-      isDataAvailible = false;
-      isError = false;
-      try{
-        flash_message.currentSnackBar.dismiss();
-      } catch(e) {}
-    });
+  Future<void> getData() async{
     
-    if (this._connectionStatus == 'Unknown' || this._connectionStatus == 'ConnectivityResult.none') {
-      setState(() {
-        this.isError = true;
-        initConnectivity();
-      });
-      return null;
-    }
-    
-    Map _locationData = await determineLocation(context, _prefs, location);
+    this.toggleIsError(isError: false, dismissMessage: true);
+    if (connectivityManager.hasValidConnection() == false) {return null;}
+    Map _locationData = await locationManager.determineLocation();
     if (!_locationData['status']) {
-      setState(() {
-        this.isError = true;
-      });
+      this.toggleIsError();
       return null;
     }
-
     setState(() {
       weatherBase.setValues(
         cityName: _locationData['name'],
@@ -135,27 +54,31 @@ class _ResultScreenState extends State<ResultScreen> {
         tempMax: _locationData['main']['temp_max'].round()
       );
       weatherData =  weatherBase.getValues();
-      isDataAvailible = true;
-      isError = false;
+      toggleIsError(isError: false, isDataAvailible: true);
     });
-
-  } 
-
-  Future<void> setupConfigurations() async {
-      await initConnectivity();
-      _connectivitySubscription =
-          _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
-      _getData();
   }
 
+  void toggleIsError({isError: true, isDataAvailible: false, dismissMessage: false}){
+    setState(() {
+      this.isError = isError;
+      this.isDataAvailible = isDataAvailible;
+      if (dismissMessage) {flashMessageManager.dismissFlashMessage();}
+    });
+  }
+  Future<void> setupConfigurations() async {
+    locationManager = LocationManager(context: context, flashController: this.flashMessageManager, preferencesManager: this.preferencesManager);
+    connectivityManager = ConnectivityManager(context: context, onConnectionRestore: getData, onConnectionLost: toggleIsError, flashController: flashMessageManager);
+    await connectivityManager.initConnectivity(subscribeConnection: true);
+    getData();
+  }
   @override
   void initState() {
-   setupConfigurations();
+    setupConfigurations();
     super.initState();
   }
   @override
   void dispose() {
-    _connectivitySubscription.cancel();
+    connectivityManager.unsubscribeConnectivity();
     super.dispose();
   }
 
@@ -262,7 +185,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                   color: Colors.white,
                                   iconSize: 30,
                                   onPressed: () async {
-                                    await _getData();
+                                    await getData();
                                   },
                                 ),
                               ),
@@ -273,7 +196,7 @@ class _ResultScreenState extends State<ResultScreen> {
                                   color: Colors.white,
                                   iconSize: 30,
                                   onPressed: () async {
-                                    await clearPref(_prefs); 
+                                    await preferencesManager.clearPref(); 
                                   },
                                 ),
                               ),
@@ -423,7 +346,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 child: Container(
                   child: GestureDetector(
                     onTap: () {
-                      _getData();
+                      getData();
                     },
                     child: Column(
                       children: [

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flash/flash.dart';
 
-FlashController<dynamic> currentSnackBar;
+class FlashMessageManager {
 
-void showBasicsFlash({
+  FlashController<dynamic> currentSnackBar;
+
+  void showBasicsFlash({
     @required context,
     Duration duration,
     flashStyle = FlashBehavior.fixed,
     @required String content,
     Icon icon
-  }) {
+    }) 
+  {
     showFlash(
       context: context,
       duration: duration,
@@ -20,7 +23,7 @@ void showBasicsFlash({
           margin: EdgeInsets.only(top: 25, left: 12, right: 12),
           backgroundColor: Colors.lightBlue.withOpacity(0.5),
           borderRadius: BorderRadius.circular(20),
-          enableVerticalDrag: false,
+          enableVerticalDrag: true,
           behavior: flashStyle,
           position: FlashPosition.top,
           boxShadows: kElevationToShadow[4],
@@ -40,3 +43,14 @@ void showBasicsFlash({
       },
     );
   }
+
+  void dismissFlashMessage() {
+    try{
+      currentSnackBar.dismiss();
+    } catch(e) {}
+  }
+
+
+}
+
+
