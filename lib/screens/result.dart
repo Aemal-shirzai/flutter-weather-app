@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:bouncing_widget/bouncing_widget.dart';
 import 'package:hawa/screens/search.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:hawa/components/customStore.dart';
@@ -178,42 +179,48 @@ class _ResultScreenState extends State<ResultScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                child: IconButton(
-                                  tooltip: "Current Location",
-                                  icon: Icon(FontAwesomeIcons.locationArrow),
-                                  color: Colors.white,
-                                  iconSize: 30,
-                                  onPressed: () async {
-                                    await getData();
-                                  },
+                              BouncingWidget(
+                                duration: Duration(milliseconds: 100),
+                                scaleFactor: 3,
+                                onPressed: () async {
+                                  await getData();
+                                },
+                                child: Container(
+                                  child: Tooltip(
+                                    message: "Current Location",
+                                    child: Icon(FontAwesomeIcons.locationArrow, size: 30, color: Colors.white,),
+                                  ),
                                 ),
                               ),
-                              Container(
-                                child: IconButton(
-                                  tooltip: "Clear Prefrences",
-                                  icon: Icon(FontAwesomeIcons.trashRestoreAlt),
-                                  color: Colors.white,
-                                  iconSize: 30,
-                                  onPressed: () async {
-                                    await preferencesManager.clearPref(); 
-                                  },
+                              BouncingWidget(
+                                duration: Duration(milliseconds: 100),
+                                scaleFactor: 3,
+                                onPressed: () async {
+                                  await preferencesManager.clearPref(); 
+                                },
+                                child: Container(
+                                  child: Tooltip(
+                                    message: "Clear Prefrences",
+                                    child: Icon(FontAwesomeIcons.trashRestoreAlt, size: 30, color: Colors.white,),
+                                  ),
                                 ),
                               ),
-                              Container(
-                                child: IconButton(
-                                  tooltip: "Search Locations",
-                                  icon: Icon(FontAwesomeIcons.search),
-                                  color: Colors.white,
-                                  iconSize: 30,
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) {
-                                        return SearchScreen();
-                                      }),
-                                    );
-                                  },
+                              BouncingWidget(
+                                duration: Duration(milliseconds: 100),
+                                scaleFactor: 3,
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) {
+                                      return SearchScreen();
+                                    }),
+                                  ); 
+                                },
+                                child: Container(
+                                  child: Tooltip(
+                                    message: "Search Locations",
+                                    child: Icon(FontAwesomeIcons.search, size: 30, color: Colors.white,),
+                                  ),
                                 ),
                               ),
                             ],
@@ -343,11 +350,13 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               Visibility(
                 visible: !isDataAvailible && isError,
-                child: Container(
-                  child: GestureDetector(
-                    onTap: () {
-                      getData();
-                    },
+                child: BouncingWidget(
+                  duration: Duration(milliseconds: 200),
+                  scaleFactor: 1.5,
+                  onPressed: () {
+                    getData();
+                  },
+                  child: Container(
                     child: Column(
                       children: [
                         Icon(

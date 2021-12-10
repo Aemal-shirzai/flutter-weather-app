@@ -1,8 +1,5 @@
-import 'dart:ffi';
-
-import 'package:flutter/material.dart';
-
 class WeatherBase {
+
   String _cityName;
   String _countryName;
   int _cityTemprature;

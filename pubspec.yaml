@@ -21,6 +21,7 @@ dependencies:
   loading_indicator: ^2.0.1
   flash: ^2.0.3
   connectivity: ^3.0.6
+  bouncing_widget: ^2.0.0
 
 dev_dependencies:
   flutter_test:
