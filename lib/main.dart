@@ -11,7 +11,7 @@ class HawaApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Comfortaa-Regular',
         textTheme: TextTheme(
-          headline1: TextStyle(color: Colors.white, fontSize: 160, letterSpacing: 1.5),
+          headline1: TextStyle(color: Colors.white, fontSize: 140, letterSpacing: 1.5),
           headline4: TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 1.5, fontWeight: FontWeight.bold),
           headline5: TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 1.5),
           headline6: TextStyle(color: Colors.white, fontSize: 12, letterSpacing: 1),

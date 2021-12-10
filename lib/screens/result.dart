@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:bouncing_widget/bouncing_widget.dart';
-import 'package:hawa/screens/search.dart';
+import 'package:solid_bottom_sheet/solid_bottom_sheet.dart';
+import 'package:material_floating_search_bar/material_floating_search_bar.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'package:hawa/components/customStore.dart';
 import 'package:hawa/components/flashMessage.dart';
@@ -19,7 +20,7 @@ class ResultScreen extends StatefulWidget {
 class _ResultScreenState extends State<ResultScreen> {
   WeatherBase weatherBase = WeatherBase();
   ConnectivityManager connectivityManager;
-  PreferencesManager preferencesManager = PreferencesManager();
+  PreferencesManager preferencesManager;
   FlashMessageManager flashMessageManager = FlashMessageManager();
   LocationManager locationManager;
   bool isDataAvailible = false;
@@ -67,6 +68,7 @@ class _ResultScreenState extends State<ResultScreen> {
     });
   }
   Future<void> setupConfigurations() async {
+    preferencesManager = PreferencesManager(context: context, flashController: this.flashMessageManager);
     locationManager = LocationManager(context: context, flashController: this.flashMessageManager, preferencesManager: this.preferencesManager);
     connectivityManager = ConnectivityManager(context: context, onConnectionRestore: getData, onConnectionLost: toggleIsError, flashController: flashMessageManager);
     await connectivityManager.initConnectivity(subscribeConnection: true);
@@ -83,301 +85,394 @@ class _ResultScreenState extends State<ResultScreen> {
     super.dispose();
   }
 
+  SolidController _controller = SolidController();
   @override
   Widget build(BuildContext context) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     return Scaffold(
-      body: Container(
-        constraints: BoxConstraints.expand(),
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/03.jpg"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      resizeToAvoidBottomInset: false,
+      drawer: Drawer(
+        child: Container(
+          width: 200,
+          child: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              Visibility(
-                visible: isDataAvailible && !isError,
-                child: Expanded(
-                  child: Column(
-                    children: [    
-                      Expanded(
-                        flex: 5,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    height: 20,
-                                  ),
-                                  Container(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    padding: EdgeInsets.only(left: 12, right: 12, bottom: 12, top:12),
-                                    child: Text(
-                                      weatherData["cityName"] + "-" + weatherData["countryName"],
-                                      style: Theme.of(context).textTheme.headline4,
-                                    ),
-                                  ),
-                                  Container(
-                                    child: RichText(
-                                        text: TextSpan(
-                                          text: weatherData["cityTemprature"].toString(),
-                                          style: Theme.of(context).textTheme.headline1,
-                                          children: const <TextSpan>[
-                                            TextSpan(
-                                              text: '\u00B0', 
-                                              style: TextStyle(
-                                                fontWeight:  FontWeight.normal,
-                                                fontSize: 100,
-                                                fontFeatures: [
-                                                  FontFeature.enable('sups')
+              const UserAccountsDrawerHeader(
+                // currentAccountPicture: CircleAvatar(
+                //   backgroundImage: NetworkImage(
+                //       'https://images.unsplash.com/photo-1485290334039-a3c69043e517?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxfDB8MXxyYW5kb218MHx8fHx8fHx8MTYyOTU3NDE0MQ&ixlib=rb-1.2.1&q=80&utm_campaign=api-credit&utm_medium=referral&utm_source=unsplash_source&w=300'),
+                // ),
+                accountEmail: Text('weatherapp@abc.com'),
+                accountName: Text(
+                  'Weather App',
+                  style: TextStyle(fontSize: 24.0),
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                ),
+                margin: EdgeInsets.only(bottom:4),
+              ),
+              ListTile(
+                leading: const Icon(FontAwesomeIcons.locationArrow),
+                title: const Text(
+                  'My Location',
+                  style: TextStyle(fontSize: 20.0),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await getData();
+                },
+              ),
+              const Divider(
+                height: 10,
+                thickness: 1,
+              ),
+              ListTile(
+                leading: const Icon(FontAwesomeIcons.trashRestoreAlt),
+                title: const Text(
+                  'Clear Cache',
+                  style: TextStyle(fontSize: 20.0),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await preferencesManager.clearPref();
+                },
+              ),
+            ],
+          ),
+          
+        ),
+      ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            constraints: BoxConstraints.expand(),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/images/04.jpg"),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Visibility(
+                      visible: isDataAvailible && !isError,
+                      child: Expanded(
+                        child: Column(
+                          children: [    
+                            Expanded(
+                              flex: 5,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          height: 20,
+                                        ),
+                                        Container(
+                                          color: Colors.grey.withOpacity(0.2),
+                                          padding: EdgeInsets.only(left: 12, right: 12, bottom: 12, top:12),
+                                          child: Text(
+                                            weatherData["cityName"] + "-" + weatherData["countryName"],
+                                            style: Theme.of(context).textTheme.headline4,
+                                          ),
+                                        ),
+                                        Container(
+                                          child: RichText(
+                                              text: TextSpan(
+                                                text: weatherData["cityTemprature"].toString(),
+                                                style: Theme.of(context).textTheme.headline1,
+                                                children: const <TextSpan>[
+                                                  TextSpan(
+                                                    text: '\u00B0', 
+                                                    style: TextStyle(
+                                                      fontWeight:  FontWeight.normal,
+                                                      fontSize: 100,
+                                                      fontFeatures: [
+                                                        FontFeature.enable('sups')
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                             ),
-                                           
-                                        
-                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.all(12),
+                                      margin: EdgeInsets.only(top: 30, right: 10),
+                                      color: Colors.grey.withOpacity(0.2),
+                                      child: RotatedBox(
+                                        quarterTurns: -1,
+                                        child: Text(
+                                           weatherData["description"],
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            letterSpacing: 2,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          
                                         ),
                                       ),
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Container(
-                                padding: EdgeInsets.all(12),
-                                margin: EdgeInsets.only(top: 30, right: 10),
-                                color: Colors.grey.withOpacity(0.2),
-                                child: RotatedBox(
-                                  quarterTurns: -1,
-                                  child: Text(
-                                     weatherData["description"],
-                                    style: TextStyle(
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Container(
+                                padding: const EdgeInsets.only(bottom: 35),
+                                margin: const EdgeInsets.only(top: 25, bottom: 12),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
                                       color: Colors.white,
-                                      fontSize: 18,
-                                      letterSpacing: 2,
-                                      fontWeight: FontWeight.bold,
+                                      width: 2.0,
                                     ),
                                     
                                   ),
+                                  width: double.infinity,
+                                  margin: EdgeInsets.all(15),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  child: IntrinsicHeight (
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  weatherData["humidity"].toString() + "%",
+                                                  style: Theme.of(context).textTheme.headline5,
+                                                ),
+                                                SizedBox(
+                                                  height: 5,
+                                                ),
+                                                Text(
+                                                  "Humidity",
+                                                  style: Theme.of(context).textTheme.headline6,
+                                                ),
+                                              ],
+                                            ),
+                                            alignment: Alignment.center,
+                                          ),
+                                        ),
+                                        VerticalDivider(
+                                          thickness: 0.5,
+                                          width: 10,
+                                          color: Colors.white,
+                                          indent: 16,
+                                          endIndent: 16,
+                                        ),
+                                        Expanded(
+                                          child: Container(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  weatherData["tempMin"].toString() + " \u00B0",
+                                                  style: Theme.of(context).textTheme.headline5,
+                                                ),
+                                                SizedBox(
+                                                  height: 5,
+                                                ),
+                                                Text(
+                                                  "Min Temp",
+                                                  style: Theme.of(context).textTheme.headline6,
+                                                ),
+                                              ],
+                                            ),
+                                            alignment: Alignment.center,
+                                          ),
+                                        ),
+                                        VerticalDivider(
+                                          thickness: 0.5,
+                                          width: 10,
+                                          color: Colors.white,
+                                          
+                                          indent: 16,
+                                          endIndent: 16,
+                                        ),
+                                        Expanded(
+                                          child: Container(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  weatherData["tempMax"].toString() + " \u00B0",
+                                                  style: Theme.of(context).textTheme.headline5,
+                                                ),
+                                                SizedBox(
+                                                  height: 5,
+                                                ),
+                                                Text(
+                                                  "Max Temp",
+                                                  style: Theme.of(context).textTheme.headline6,
+                                                ),
+                                              ],
+                                            ),
+                                            alignment: Alignment.center,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                      Expanded(
-                        flex: 1,
+                    ),
+                    Visibility(
+                      visible: !isDataAvailible && !isError,
+                      child: Container(
+                        width: 100,
+                        child: LoadingIndicator(
+                          colors: [Colors.red,
+                            Colors.orange,
+                            Colors.yellow,
+                            Colors.green,
+                            Colors.blue,
+                            Colors.indigo,
+                            Colors.purple,],
+                          indicatorType: Indicator.ballTrianglePathColoredFilled,
+                        ),
+                      )
+                    ),
+                    Visibility(
+                      visible: !isDataAvailible && isError,
+                      child: BouncingWidget(
+                        duration: Duration(milliseconds: 200),
+                        scaleFactor: 1.5,
+                        onPressed: () {
+                          getData();
+                        },
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
                             children: [
-                              BouncingWidget(
-                                duration: Duration(milliseconds: 100),
-                                scaleFactor: 3,
-                                onPressed: () async {
-                                  await getData();
-                                },
-                                child: Container(
-                                  child: Tooltip(
-                                    message: "Current Location",
-                                    child: Icon(FontAwesomeIcons.locationArrow, size: 30, color: Colors.white,),
-                                  ),
-                                ),
+                              Icon(
+                                Icons.refresh,
+                                size: 80,
+                                color: Colors.white,
                               ),
-                              BouncingWidget(
-                                duration: Duration(milliseconds: 100),
-                                scaleFactor: 3,
-                                onPressed: () async {
-                                  await preferencesManager.clearPref(); 
-                                },
-                                child: Container(
-                                  child: Tooltip(
-                                    message: "Clear Prefrences",
-                                    child: Icon(FontAwesomeIcons.trashRestoreAlt, size: 30, color: Colors.white,),
-                                  ),
-                                ),
-                              ),
-                              BouncingWidget(
-                                duration: Duration(milliseconds: 100),
-                                scaleFactor: 3,
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) {
-                                      return SearchScreen();
-                                    }),
-                                  ); 
-                                },
-                                child: Container(
-                                  child: Tooltip(
-                                    message: "Search Locations",
-                                    child: Icon(FontAwesomeIcons.search, size: 30, color: Colors.white,),
-                                  ),
+                              Text(
+                                "Reload",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 1,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2.0,
-                            ),
-                          ),
-                          width: double.infinity,
-                          margin: EdgeInsets.all(15),
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          child: IntrinsicHeight (
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          weatherData["humidity"].toString() + "%",
-                                          style: Theme.of(context).textTheme.headline5,
-                                        ),
-                                        SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(
-                                          "Humidity",
-                                          style: Theme.of(context).textTheme.headline6,
-                                        ),
-                                      ],
-                                    ),
-                                    alignment: Alignment.center,
-                                  ),
-                                ),
-                                VerticalDivider(
-                                  thickness: 0.5,
-                                  width: 10,
-                                  color: Colors.white,
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          weatherData["tempMin"].toString() + " \u00B0",
-                                          style: Theme.of(context).textTheme.headline5,
-                                        ),
-                                        SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(
-                                          "Min Temp",
-                                          style: Theme.of(context).textTheme.headline6,
-                                        ),
-                                      ],
-                                    ),
-                                    alignment: Alignment.center,
-                                  ),
-                                ),
-                                VerticalDivider(
-                                  thickness: 0.5,
-                                  width: 10,
-                                  color: Colors.white,
-                                  
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          weatherData["tempMax"].toString() + " \u00B0",
-                                          style: Theme.of(context).textTheme.headline5,
-                                        ),
-                                        SizedBox(
-                                          height: 5,
-                                        ),
-                                        Text(
-                                          "Max Temp",
-                                          style: Theme.of(context).textTheme.headline6,
-                                        ),
-                                      ],
-                                    ),
-                                    alignment: Alignment.center,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                      )
+                    ),
+                  ],
                 ),
               ),
-              Visibility(
-                visible: !isDataAvailible && !isError,
-                child: Container(
-                  width: 100,
-                  child: LoadingIndicator(
-                    colors: [Colors.red,
-                      Colors.orange,
-                      Colors.yellow,
-                      Colors.green,
-                      Colors.blue,
-                      Colors.indigo,
-                      Colors.purple,],
-                    indicatorType: Indicator.ballTrianglePathColoredFilled,
+            ),
+          ),
+          Visibility(
+            visible: isDataAvailible && !isError,
+            child: FloatingSearchBar(
+              hint: 'Search City Name...',
+              scrollPadding: const EdgeInsets.only(top: 16, bottom: 56),
+              transitionDuration: const Duration(milliseconds: 800),
+              transitionCurve: Curves.easeInOut,
+              physics: const BouncingScrollPhysics(),
+              axisAlignment: isPortrait ? 0.0 : -1.0,
+              openAxisAlignment: 0.0,
+              width: isPortrait ? 600 : 500,
+              debounceDelay: const Duration(milliseconds: 500),
+              onQueryChanged: (query) {
+                print("?????????????????????????????????????????????????????? $query");
+                // Call your model, bloc, controller here.
+              },
+              onSubmitted: (query) {
+                print(">>>>>>>>>>>... submited $query");
+              },
+              // Specify a custom transition to be used for
+              // animating between opened and closed stated.
+              transition: CircularFloatingSearchBarTransition(),
+              actions: [
+                FloatingSearchBarAction(
+                  showIfOpened: false,
+                  child: CircularButton(
+                    icon: const Icon(Icons.place),
+                    onPressed: () {},
                   ),
-                )
-              ),
-              Visibility(
-                visible: !isDataAvailible && isError,
-                child: BouncingWidget(
-                  duration: Duration(milliseconds: 200),
-                  scaleFactor: 1.5,
-                  onPressed: () {
-                    getData();
-                  },
-                  child: Container(
+                ),
+                FloatingSearchBarAction.searchToClear(
+                  showIfClosed: false,
+                ),
+              ],
+              builder: (context, transition) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Material(
+                    color: Colors.white,
+                    elevation: 4.0,
                     child: Column(
-                      children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 80,
-                          color: Colors.white,
-                        ),
-                        Text(
-                          "Reload",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                      ],
+                      mainAxisSize: MainAxisSize.min,
+                      children: Colors.accents.map((color) {
+                        return Container(height: 112, color: color);
+                      }).toList(),
                     ),
                   ),
-                )
-              )
-            ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      bottomSheet: Visibility(
+        visible: isDataAvailible && !isError,
+        child: SolidBottomSheet(
+          controller: _controller,
+          draggableBody: true,
+          headerBar: Container(
+            decoration:  BoxDecoration(
+              color: Color.fromRGBO(35, 39, 66, 0.8),
+            ),
+            height: 45,
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.keyboard_arrow_up, color: Colors.white,),
+                  Text("Swip Up For More..", style: TextStyle(color: Colors.white),),
+                ],
+              ),
+            ),
+          ),
+          body: Container(
+            color: Colors.white,
+            height: 30,
+            child: Center(
+              child: Text(
+                "Hello! I'm a bottom sheet :D",
+                style: Theme.of(context).textTheme.headline1,
+              ),
+            ),
           ),
         ),
       ),

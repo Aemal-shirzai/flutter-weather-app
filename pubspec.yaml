@@ -22,6 +22,8 @@ dependencies:
   flash: ^2.0.3
   connectivity: ^3.0.6
   bouncing_widget: ^2.0.0
+  solid_bottom_sheet: ^0.1.10
+  material_floating_search_bar: ^0.3.6
 
 dev_dependencies:
   flutter_test:

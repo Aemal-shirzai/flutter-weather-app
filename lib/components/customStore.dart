@@ -1,12 +1,14 @@
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:flutter/material.dart';
+import 'package:hawa/components/flashMessage.dart';
 class PreferencesManager {
 
   Future<SharedPreferences> prefs;
   SharedPreferences _prefsObj;
+  BuildContext context;
+  FlashMessageManager flashController;
   
-  
-  PreferencesManager() {
+  PreferencesManager({this.context, this.flashController}) {
     this.prefs = SharedPreferences.getInstance();
     setupObj();
   }
@@ -33,5 +35,15 @@ class PreferencesManager {
   }
   Future<void> clearPref() async {
     await this._prefsObj.clear();
+    flashController.showBasicsFlash(
+      context: this.context,
+      duration: Duration(seconds: 2),
+      content: "Cache Cleared", 
+      icon: Icon(
+        Icons.check,
+        size: 40,
+        color: Colors.white,
+      ),
+    );
   }
 }
