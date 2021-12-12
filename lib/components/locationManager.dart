@@ -58,7 +58,7 @@ class LocationManager {
   }
 
 
-  Future<dynamic> determineLocation({searchBy: searchType.byGeo}) async{
+  Future<dynamic> determineLocation({searchBy: searchType.byGeo, cityName: false}) async{
     String searchQuery = '';
     Map jsonBody = {};
     
@@ -82,12 +82,19 @@ class LocationManager {
       await this.preferencesManager.setPrefsData({'lat': lat, 'lon': lon});
       searchQuery = 'lat=$lat&lon=$lon';
     } else {
-      searchQuery = 'q=London';
+      searchQuery = 'q=$cityName';
     }
+
     
     try {
       http.Response response = await http.get(Uri.parse("https://api.openweathermap.org/data/2.5/weather?$searchQuery&appid=$KApiKey&units=metric")).timeout(Duration(seconds: 15));
-      jsonBody = convert.jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        jsonBody = convert.jsonDecode(response.body);
+      } else if(response.statusCode == 404) {
+        return {'status': false};
+      } else {
+        return {'status': false};
+      }
     } catch(e) {
       flashController.showBasicsFlash(
         context: this.context,

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:bouncing_widget/bouncing_widget.dart';
+import 'package:hawa/components/constants.dart';
 import 'package:solid_bottom_sheet/solid_bottom_sheet.dart';
 import 'package:material_floating_search_bar/material_floating_search_bar.dart';
 import 'package:loading_indicator/loading_indicator.dart';
@@ -36,11 +37,16 @@ class _ResultScreenState extends State<ResultScreen> {
   };
 
 
-  Future<void> getData() async{
+  Future<void> getData({cityName: false}) async{
     
     this.toggleIsError(isError: false, dismissMessage: true);
     if (connectivityManager.hasValidConnection() == false) {return null;}
-    Map _locationData = await locationManager.determineLocation();
+    Map _locationData = {};
+    if (cityName != false){
+      _locationData = await locationManager.determineLocation(searchBy: searchType.byCity, cityName: cityName);
+    } else {
+      _locationData = await locationManager.determineLocation();
+    }
     if (!_locationData['status']) {
       this.toggleIsError();
       return null;
@@ -86,6 +92,10 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   SolidController _controller = SolidController();
+  FloatingSearchBarController _controller_search = FloatingSearchBarController();
+  List history = [
+    "Kabul", "London", "Welcome"
+  ];
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
@@ -156,7 +166,7 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(top: 40),
+                padding: const EdgeInsets.only(top: 50),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -233,10 +243,8 @@ class _ResultScreenState extends State<ResultScreen> {
                               ),
                             ),
                             Expanded(
-                              flex: 2,
+                              flex: 1,
                               child: Container(
-                                padding: const EdgeInsets.only(bottom: 35),
-                                margin: const EdgeInsets.only(top: 25, bottom: 12),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: Colors.transparent,
@@ -393,9 +401,12 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
           ),
           Visibility(
-            visible: isDataAvailible && !isError,
+            // visible: isDataAvailible && !isError,
+            visible: true,
             child: FloatingSearchBar(
               hint: 'Search City Name...',
+              controller: _controller_search,
+              clearQueryOnClose: false,
               scrollPadding: const EdgeInsets.only(top: 16, bottom: 56),
               transitionDuration: const Duration(milliseconds: 800),
               transitionCurve: Curves.easeInOut,
@@ -408,8 +419,9 @@ class _ResultScreenState extends State<ResultScreen> {
                 print("?????????????????????????????????????????????????????? $query");
                 // Call your model, bloc, controller here.
               },
-              onSubmitted: (query) {
-                print(">>>>>>>>>>>... submited $query");
+              onSubmitted: (query) async {
+                _controller_search.close();
+                await getData(cityName: query);
               },
               // Specify a custom transition to be used for
               // animating between opened and closed stated.
@@ -428,15 +440,37 @@ class _ResultScreenState extends State<ResultScreen> {
               ],
               builder: (context, transition) {
                 return ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(3),
                   child: Material(
                     color: Colors.white,
                     elevation: 4.0,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: Colors.accents.map((color) {
-                        return Container(height: 112, color: color);
-                      }).toList(),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 20.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: history.map((city) {
+                          return GestureDetector(
+                            onTap: () => _controller_search.query = city,
+                            child: Container(
+                              alignment: Alignment.centerLeft,
+                              decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(
+                                color: Colors.grey[350]
+                              ),),
+                              ),
+                              width: double.infinity,
+                              padding: EdgeInsets.symmetric(horizontal: 20),
+                              height: 50, 
+                              child: Text(
+                                city,
+                                style: TextStyle(fontSize: 18),
+                                textAlign: TextAlign.justify,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
                 );
@@ -445,37 +479,37 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
         ],
       ),
-      bottomSheet: Visibility(
-        visible: isDataAvailible && !isError,
-        child: SolidBottomSheet(
-          controller: _controller,
-          draggableBody: true,
-          headerBar: Container(
-            decoration:  BoxDecoration(
-              color: Color.fromRGBO(35, 39, 66, 0.8),
-            ),
-            height: 45,
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Icons.keyboard_arrow_up, color: Colors.white,),
-                  Text("Swip Up For More..", style: TextStyle(color: Colors.white),),
-                ],
-              ),
-            ),
-          ),
-          body: Container(
-            color: Colors.white,
-            height: 30,
-            child: Center(
-              child: Text(
-                "Hello! I'm a bottom sheet :D",
-                style: Theme.of(context).textTheme.headline1,
-              ),
-            ),
-          ),
-        ),
-      ),
+      // bottomSheet: Visibility(
+      //   visible: isDataAvailible && !isError,
+      //   child: SolidBottomSheet(
+      //     controller: _controller,
+      //     draggableBody: true,
+      //     headerBar: Container(
+      //       decoration:  BoxDecoration(
+      //         color: Color.fromRGBO(35, 39, 66, 0.8),
+      //       ),
+      //       height: 45,
+      //       child: Center(
+      //         child: Column(
+      //           children: [
+      //             Icon(Icons.keyboard_arrow_up, color: Colors.white,),
+      //             Text("Swip Up For More..", style: TextStyle(color: Colors.white),),
+      //           ],
+      //         ),
+      //       ),
+      //     ),
+      //     body: Container(
+      //       color: Colors.white,
+      //       height: 30,
+      //       child: Center(
+      //         child: Text(
+      //           "Hello! I'm a bottom sheet :D",
+      //           style: Theme.of(context).textTheme.headline1,
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+      // ),
     );
   }
 }
