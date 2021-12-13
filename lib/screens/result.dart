@@ -19,6 +19,8 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
+  SolidController _controller = SolidController();
+  FloatingSearchBarController _controllerSearch = FloatingSearchBarController();
   WeatherBase weatherBase = WeatherBase();
   ConnectivityManager connectivityManager;
   PreferencesManager preferencesManager;
@@ -26,6 +28,7 @@ class _ResultScreenState extends State<ResultScreen> {
   LocationManager locationManager;
   bool isDataAvailible = false;
   bool isError = false;
+  bool showSearchBar = true;
   Map weatherData = {
     "countryName": "",
     "cityName" : '',
@@ -70,6 +73,7 @@ class _ResultScreenState extends State<ResultScreen> {
     setState(() {
       this.isError = isError;
       this.isDataAvailible = isDataAvailible;
+      this.showSearchBar = !isError;
       if (dismissMessage) {flashMessageManager.dismissFlashMessage();}
     });
   }
@@ -91,8 +95,6 @@ class _ResultScreenState extends State<ResultScreen> {
     super.dispose();
   }
 
-  SolidController _controller = SolidController();
-  FloatingSearchBarController _controller_search = FloatingSearchBarController();
   List history = [
     "Kabul", "London", "Welcome"
   ];
@@ -130,6 +132,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 ),
                 onTap: () async {
                   Navigator.pop(context);
+                  this._controllerSearch.query = '';
                   await getData();
                 },
               ),
@@ -145,6 +148,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 ),
                 onTap: () async {
                   Navigator.pop(context);
+                  this._controllerSearch.query = '';
                   await preferencesManager.clearPref();
                 },
               ),
@@ -402,10 +406,10 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           Visibility(
             // visible: isDataAvailible && !isError,
-            visible: true,
+            visible: showSearchBar,
             child: FloatingSearchBar(
               hint: 'Search City Name...',
-              controller: _controller_search,
+              controller: _controllerSearch,
               clearQueryOnClose: false,
               scrollPadding: const EdgeInsets.only(top: 16, bottom: 56),
               transitionDuration: const Duration(milliseconds: 800),
@@ -420,7 +424,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 // Call your model, bloc, controller here.
               },
               onSubmitted: (query) async {
-                _controller_search.close();
+                _controllerSearch.close();
                 await getData(cityName: query);
               },
               // Specify a custom transition to be used for
@@ -451,7 +455,7 @@ class _ResultScreenState extends State<ResultScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: history.map((city) {
                           return GestureDetector(
-                            onTap: () => _controller_search.query = city,
+                            onTap: () => _controllerSearch.query = city,
                             child: Container(
                               alignment: Alignment.centerLeft,
                               decoration: BoxDecoration(
