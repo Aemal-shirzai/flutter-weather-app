@@ -18,7 +18,7 @@ class LocationManager {
   LocationManager({this.context, this.flashController, this.preferencesManager});
 
   Future<bool> checkLocationAccess() async {
-    bool res = await this.preferencesManager.isPrefsDataAvailible();
+    bool res = await this.preferencesManager.isLocationCachedDataAvailible();
     if(!res){
       _serviceEnabled = await this.location.serviceEnabled();
       if (!_serviceEnabled) {
@@ -69,17 +69,17 @@ class LocationManager {
       if (_locationAccess == false) {
         return {'status': false};
       }
-      bool res = await this.preferencesManager.isPrefsDataAvailible();
+      bool res = await this.preferencesManager.isLocationCachedDataAvailible();
       if(!res){
         LocationData _locationData = await this.location.getLocation();
         lat = _locationData.latitude;
         lon = _locationData.longitude;
       }else {
-        Map _locationData = await this.preferencesManager.getPrefsData();
+        Map _locationData = await this.preferencesManager.getLocationCachedData();
         lat = _locationData['lat'];
         lon = _locationData['lon'];
       }
-      await this.preferencesManager.setPrefsData({'lat': lat, 'lon': lon});
+      await this.preferencesManager.setLocationCachedData({'lat': lat, 'lon': lon});
       searchQuery = 'lat=$lat&lon=$lon';
     } else {
       searchQuery = 'q=$cityName';

@@ -38,6 +38,7 @@ class _ResultScreenState extends State<ResultScreen> {
     "tempMin": '',
     "tempMax": '',
   };
+  List<String> searchHistory = [];
 
 
   Future<void> getData({cityName: false}) async{
@@ -83,7 +84,16 @@ class _ResultScreenState extends State<ResultScreen> {
     connectivityManager = ConnectivityManager(context: context, onConnectionRestore: getData, onConnectionLost: toggleIsError, flashController: flashMessageManager);
     await connectivityManager.initConnectivity(subscribeConnection: true);
     getData();
+    searchHistory = await preferencesManager.getCachedHistoryData();
   }
+
+  Future<void> searchDate(query) async {
+    _controllerSearch.close();
+    await getData(cityName: query);
+    await preferencesManager.setCachedHistoryData({'query': query});
+    searchHistory = await preferencesManager.getCachedHistoryData();
+  }
+
   @override
   void initState() {
     setupConfigurations();
@@ -95,9 +105,6 @@ class _ResultScreenState extends State<ResultScreen> {
     super.dispose();
   }
 
-  List history = [
-    "Kabul", "London", "Welcome"
-  ];
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
@@ -143,13 +150,25 @@ class _ResultScreenState extends State<ResultScreen> {
               ListTile(
                 leading: const Icon(FontAwesomeIcons.trashRestoreAlt),
                 title: const Text(
+                  'Clear Search History',
+                  style: TextStyle(fontSize: 20.0),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  this._controllerSearch.query = '';
+                  await preferencesManager.clearCachedHistoryData();
+                },
+              ),
+              ListTile(
+                leading: const Icon(FontAwesomeIcons.trashRestoreAlt),
+                title: const Text(
                   'Clear Cache',
                   style: TextStyle(fontSize: 20.0),
                 ),
                 onTap: () async {
                   Navigator.pop(context);
                   this._controllerSearch.query = '';
-                  await preferencesManager.clearPref();
+                  await preferencesManager.clearLocationCachedData();
                 },
               ),
             ],
@@ -423,9 +442,8 @@ class _ResultScreenState extends State<ResultScreen> {
                 print("?????????????????????????????????????????????????????? $query");
                 // Call your model, bloc, controller here.
               },
-              onSubmitted: (query) async {
-                _controllerSearch.close();
-                await getData(cityName: query);
+              onSubmitted: (query){
+                searchDate(query);
               },
               // Specify a custom transition to be used for
               // animating between opened and closed stated.
@@ -453,7 +471,7 @@ class _ResultScreenState extends State<ResultScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: history.map((city) {
+                        children: searchHistory.map((city) {
                           return GestureDetector(
                             onTap: () => _controllerSearch.query = city,
                             child: Container(
